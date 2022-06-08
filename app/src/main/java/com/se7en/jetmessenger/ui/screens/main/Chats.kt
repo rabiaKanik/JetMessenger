@@ -1,0 +1,182 @@
+package com.se7en.jetmessenger.ui.screens.main
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRowForIndexed
+import androidx.compose.material.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Providers
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.ui.tooling.preview.Preview
+import com.se7en.jetmessenger.data.me
+import com.se7en.jetmessenger.data.models.User
+import com.se7en.jetmessenger.ui.components.CircleBadgeAvatar
+import com.se7en.jetmessenger.ui.components.CircleBorderAvatar
+import com.se7en.jetmessenger.ui.components.SearchButton
+import com.se7en.jetmessenger.ui.components.UserAvatarWithTitle
+import com.se7en.jetmessenger.ui.screens.Routing
+import com.se7en.jetmessenger.ui.theme.messengerBlue
+import com.se7en.jetmessenger.ui.theme.onSurfaceLowEmphasis
+import com.se7en.jetmessenger.ui.theme.typography
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@Composable
+fun Routing.Main.BottomNav.Chats.Content(
+    users: List<User>,
+    onChatClick: (user: User) -> Unit,
+    onSearchClick: () -> Unit
+) {
+    LazyColumn {
+        item {
+            SearchButton(
+                onClick = onSearchClick,
+                modifier = Modifier
+                    .padding(16.dp, 8.dp)
+                    .fillMaxWidth(),
+                backgroundColor = MaterialTheme.colors.onSurfaceLowEmphasis,
+                contentColor = MaterialTheme.colors.onSurface.copy(
+                    alpha = 0.5f
+                )
+            )
+        }
+        item {
+            ActiveFriendsRow(
+                users.filterIndexed { index, _ -> index % 3 == 0 },
+                onChatClick
+            )
+        }
+        itemsIndexed(users) { index, user ->
+            ChatItem(
+                user = user,
+                lastMessage = "Great! How are you doing?",
+                dateTime = "22:35",
+                isOnline = index % 3 == 0,
+                modifier = Modifier.clickable(onClick = { onChatClick(user) })
+            )
+        }
+    }
+}
+
+@Composable
+fun ActiveFriendsRow(
+    users: List<User>,
+    onItemClick: (user: User) -> Unit
+) {
+    LazyRowForIndexed(
+        items = users,
+        contentPadding = PaddingValues(2.dp)
+    ) { index, user ->
+        val padding = 4.dp
+        val (startPadding, endPadding) = when(index) {
+            0 -> Pair(8.dp, padding)
+            users.lastIndex -> Pair(padding, 8.dp)
+            else -> Pair(padding, padding)
+        }
+
+        UserAvatarWithTitle(
+            title = user.name.first,
+            imageData = user.picture.medium,
+            imageSize = 56.dp,
+            modifier = Modifier
+                .clickable(onClick = { onItemClick(user) })
+                .padding(
+                    start = startPadding,
+                    end = endPadding,
+                    top = padding,
+                    bottom = padding
+                )
+        )
+    }
+}
+
+@Composable
+fun ChatItem(
+    user: User,
+    lastMessage: String,
+    dateTime: String,
+    isOnline: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+
+    Row(
+        modifier = modifier
+            .padding(12.dp, 8.dp)
+            .fillMaxWidth()
+    ) {
+        when {
+            isOnline -> {
+                CircleBadgeAvatar(
+                    imageData = user.picture.medium,
+                    size = 56.dp
+                )
+            }
+            else -> CircleBorderAvatar(
+                imageData = user.picture.medium,
+                size = 56.dp
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(4.dp))
+
+        Column(
+            modifier = Modifier.align(Alignment.CenterVertically)
+        ) {
+            Providers(AmbientContentAlpha provides ContentAlpha.high, children = {
+                Text(
+                    "${user.name.first} ${user.name.last}",
+                    style = MaterialTheme.typography.subtitle1
+                )
+            })
+
+            Spacer(modifier = Modifier.padding(2.dp))
+
+            ProvideTextStyle(value = typography.caption.copy(
+                fontSize = 14.sp
+            ), children = {
+                Providers(AmbientContentAlpha provides ContentAlpha.high, children = {
+                    LastMessageWithDateTime(
+                        user.name.first,
+                        lastMessage,
+                        dateTime
+                    )
+                })
+            })
+        }
+    }
+}
+
+@Composable
+fun LastMessageWithDateTime(
+    name: String,
+    lastMessage: String,
+    dateTime: String
+) {
+    Row {
+        Text(
+            "$name: $lastMessage",
+            modifier = Modifier.weight(1f, false),
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 1
+        )
+        Text(" • $dateTime", maxLines = 1)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ChatItem() {
+    ChatItem(
+        me,
+        "Hey there",
+        "17:45",
+    )
+}
